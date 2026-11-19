@@ -1,0 +1,67 @@
+name: Build IPA
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Распаковка проекта из zip
+        run: |
+          ZIP=$(ls *.zip | head -n 1)
+          echo "Архив: $ZIP"
+          mkdir proj
+          unzip -q "$ZIP" -d proj
+          ls -a proj
+
+      - name: Установка XcodeGen
+        run: brew install xcodegen
+
+      - name: Генерация проекта
+        working-directory: proj
+        run: xcodegen generate
+
+      - name: Сборка без подписи
+        working-directory: proj
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project Anix.xcodeproj \
+            -scheme Anix \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build 2>&1 | tee build.log
+
+      - name: Упаковка IPA
+        working-directory: proj
+        run: |
+          APP=$(find build/Build/Products -maxdepth 2 -name "Anix.app" | head -n 1)
+          mkdir Payload
+          cp -R "$APP" Payload/
+          zip -qry Anix.ipa Payload
+          ls -lh Anix.ipa
+
+      - name: Загрузка IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: Anix-ipa
+          path: proj/Anix.ipa
+
+      - name: Загрузка лога
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: proj/build.log
+          if-no-files-found: ignore
