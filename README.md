@@ -2,7 +2,7 @@
 
 # Anix для iOS
 
-Неофициальный клиент **Anixart** для iPhone на SwiftUI с дизайном **Liquid Glass**.
+Неофициальный клиент **Anixart** для iPhone на SwiftUI.
 
 [![Сборка](https://github.com/tyswq/Anixart-IOS/actions/workflows/build.yml/badge.svg)](https://github.com/tyswq/Anixart-IOS/actions/workflows/build.yml)
 [![Релиз](https://img.shields.io/github/v/release/tyswq/Anixart-IOS?style=flat-square&color=ef4f5c)](https://github.com/tyswq/Anixart-IOS/releases/latest)
