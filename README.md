@@ -2,6 +2,8 @@
 
 # Anix для iOS
 
+**Русский** · [English](README.en.md)
+
 Неофициальный клиент **Anixart** для iPhone на SwiftUI.
 
 [![Сборка](https://github.com/tyswq/Anixart-IOS/actions/workflows/build.yml/badge.svg)](https://github.com/tyswq/Anixart-IOS/actions/workflows/build.yml)
@@ -10,7 +12,7 @@
 ![iOS 18+](https://img.shields.io/badge/iOS-18%2B-black?style=flat-square)
 
 [Скачать](https://github.com/tyswq/Anixart-IOS/releases/latest) ·
-[История изменений](CHANGELOG.md) ·
+[История изменений](CHANGELOG.md) ([English](CHANGELOG.en.md)) ·
 [Сообщить об ошибке](https://github.com/tyswq/Anixart-IOS/issues/new/choose)
 
 </div>
@@ -57,7 +59,8 @@ Anix/
   Resources/en.lproj/   английская локализация (ключи — русские исходные строки)
   Assets.xcassets/      иконка и ресурсы
 project.yml             описание проекта для XcodeGen
-CHANGELOG.md            история изменений
+CHANGELOG.md            история изменений (CHANGELOG.en.md — на английском)
+README.en.md            описание на английском
 ```
 
 Проект генерируется XcodeGen, файла `.xcodeproj` в репозитории нет.
