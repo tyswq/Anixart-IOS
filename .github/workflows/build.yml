@@ -2,33 +2,84 @@ name: Build IPA
 
 on:
   workflow_dispatch:
+    inputs:
+      release:
+        description: Опубликовать релиз на GitHub Releases
+        type: boolean
+        default: false
+      version:
+        description: Версия релиза, например 1.5.0 (пусто — взять из project.yml)
+        type: string
+        default: ""
   push:
     branches: [main, master]
+    paths-ignore:
+      - "**.md"
+      - "LICENSE"
+      - ".github/ISSUE_TEMPLATE/**"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
     runs-on: macos-26
-    timeout-minutes: 40
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
 
-      - name: Распаковка проекта из zip
+      # Загрузили zip с проектом в корень репозитория — раскладываем его по файлам и коммитим.
+      - name: Распаковать проект из zip
         run: |
-          ZIP=$(ls *.zip | head -n 1)
+          shopt -s nullglob
+          zips=(*.zip)
+          if [ ${#zips[@]} -eq 0 ]; then
+            echo "zip не загружен, собираем то, что лежит в репозитории"
+            exit 0
+          fi
+          ZIP="${zips[0]}"
           echo "Архив: $ZIP"
-          mkdir proj
-          unzip -q "$ZIP" -d proj
-          ls -a proj
+          rm -rf Anix
+          # код 1 у unzip — только предупреждения (например, «исключаемый файл не найден»), это не ошибка
+          unzip -qo "$ZIP" -x '.github/workflows/*' 'workflow-build.yml' '__MACOSX/*' '*.DS_Store' || [ $? -eq 1 ]
+          rm -f *.zip
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Изменений нет"
+          else
+            git -c user.name="github-actions[bot]" \
+                -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+                commit -q -m "Обновление проекта из $ZIP"
+            git push origin HEAD
+          fi
+
+      - name: Версия
+        id: ver
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          mkdir -p Config
+          V="$INPUT_VERSION"
+          if [ -z "$V" ]; then
+            V=$(grep -m1 'MARKETING_VERSION' project.yml | sed -E 's/.*"([^"]+)".*/\1/')
+          fi
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+          echo "Версия: $V, сборка: $GITHUB_RUN_NUMBER"
+          xcodebuild -version
 
       - name: Установка XcodeGen
         run: brew install xcodegen
 
       - name: Генерация проекта
-        working-directory: proj
         run: xcodegen generate
 
       - name: Сборка без подписи
-        working-directory: proj
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
         run: |
           set -o pipefail
           xcodebuild \
@@ -38,30 +89,71 @@ jobs:
             -sdk iphoneos \
             -destination 'generic/platform=iOS' \
             -derivedDataPath build \
+            MARKETING_VERSION="$VERSION" \
+            CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER" \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
             build 2>&1 | tee build.log
 
       - name: Упаковка IPA
-        working-directory: proj
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
         run: |
           APP=$(find build/Build/Products -maxdepth 2 -name "Anix.app" | head -n 1)
+          echo "Найдено приложение: $APP"
+          rm -rf Payload Anix.ipa
           mkdir Payload
           cp -R "$APP" Payload/
           zip -qry Anix.ipa Payload
-          ls -lh Anix.ipa
+          cp Anix.ipa "Anix-$VERSION.ipa"
+          ls -lh Anix*.ipa
 
       - name: Загрузка IPA
         uses: actions/upload-artifact@v4
         with:
           name: Anix-ipa
-          path: proj/Anix.ipa
+          path: Anix.ipa
 
-      - name: Загрузка лога
+      - name: Загрузка лога сборки
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: build-log
-          path: proj/build.log
+          path: build.log
           if-no-files-found: ignore
+
+      # Релиз: Actions → Build IPA → Run workflow → галочка «Опубликовать релиз».
+      # Заметки берутся из раздела этой версии в CHANGELOG.md.
+      - name: Публикация релиза
+        if: github.event_name == 'workflow_dispatch' && inputs.release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.ver.outputs.version }}
+        run: |
+          TAG="v$VERSION"
+          awk -v v="$VERSION" '
+            $0 ~ "^## \\[" v "\\]" { on = 1; next }
+            on && /^## \[/ { exit }
+            on { print }
+          ' CHANGELOG.md > notes.md
+          if [ ! -s notes.md ]; then
+            echo "Подробности — в CHANGELOG.md." > notes.md
+          fi
+          cat >> notes.md <<'NOTES'
+
+          ---
+
+          **Установка:** скачайте `.ipa` ниже и поставьте через [Sideloadly](https://sideloadly.io) (Windows или Mac) или AltStore/SideStore.
+          Нужен iPhone с iOS 18 или новее (Liquid Glass — на iOS 26). Подробная инструкция — в [README](https://github.com/tyswq/Anixart-IOS#установка).
+          NOTES
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            echo "Релиз $TAG уже есть — обновляю файл и заметки"
+            gh release upload "$TAG" "Anix-$VERSION.ipa" --clobber
+            gh release edit "$TAG" --title "Anix $VERSION" --notes-file notes.md
+          else
+            gh release create "$TAG" "Anix-$VERSION.ipa" \
+              --target "$(git rev-parse HEAD)" \
+              --title "Anix $VERSION" \
+              --notes-file notes.md
+          fi
