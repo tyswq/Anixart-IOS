@@ -38,11 +38,13 @@
 
 Минимальная система — iOS 18. На iOS 26 интерфейс использует Liquid Glass, на iOS 18–25 вместо него матовый материал.
 
-## Сборка
+## Сборка своими руками
+
+Это нужно только тем, у кого есть Mac. Файла `Anix.xcodeproj` в репозитории нет: он создаётся на вашем компьютере командой `xcodegen generate` из `project.yml`, поэтому сначала выполните её, и только потом открывайте проект.
 
 ```sh
 brew install xcodegen
-xcodegen generate
+xcodegen generate     # создаёт Anix.xcodeproj
 open Anix.xcodeproj
 ```
 
@@ -63,7 +65,7 @@ CHANGELOG.md            история изменений (CHANGELOG.en.md — �
 README.en.md            описание на английском
 ```
 
-Проект генерируется XcodeGen, файла `.xcodeproj` в репозитории нет.
+Файл `.xcodeproj` не хранится в репозитории, его создаёт XcodeGen (см. «Сборка своими руками»).
 
 ## Частые вопросы
 
