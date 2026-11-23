@@ -8,7 +8,7 @@ on:
         type: boolean
         default: false
       version:
-        description: Версия релиза, например 1.5.0 (пусто — взять из project.yml)
+        description: Версия релиза, например 1.1 (пусто — взять из project.yml)
         type: string
         default: ""
   push:
@@ -124,7 +124,7 @@ jobs:
           if-no-files-found: ignore
 
       # Релиз: Actions → Build IPA → Run workflow → галочка «Опубликовать релиз».
-      # Заметки берутся из раздела этой версии в CHANGELOG.md.
+      # Заметки берутся из раздела этой версии в CHANGELOG.en.md.
       - name: Публикация релиза
         if: github.event_name == 'workflow_dispatch' && inputs.release
         env:
@@ -136,16 +136,16 @@ jobs:
             $0 ~ "^## \\[" v "\\]" { on = 1; next }
             on && /^## \[/ { exit }
             on { print }
-          ' CHANGELOG.md > notes.md
+          ' CHANGELOG.en.md > notes.md
           if [ ! -s notes.md ]; then
-            echo "Подробности — в CHANGELOG.md." > notes.md
+            echo "See CHANGELOG.en.md for details." > notes.md
           fi
           cat >> notes.md <<'NOTES'
 
           ---
 
-          **Установка:** скачайте `.ipa` ниже и поставьте через [Sideloadly](https://sideloadly.io) (Windows или Mac) или AltStore/SideStore.
-          Нужен iPhone с iOS 18 или новее (Liquid Glass — на iOS 26). Подробная инструкция — в [README](https://github.com/tyswq/Anixart-IOS#установка).
+          **Install:** download the `.ipa` below and install it with [Sideloadly](https://sideloadly.io) (Windows or Mac) or AltStore/SideStore.
+          Requires iOS 18 or newer (Liquid Glass on iOS 26). Full guide in the [README](https://github.com/tyswq/Anixart-IOS#установка).
           NOTES
           if gh release view "$TAG" > /dev/null 2>&1; then
             echo "Релиз $TAG уже есть — обновляю файл и заметки"
