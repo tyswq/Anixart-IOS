@@ -1,0 +1,44 @@
+name: Anix
+options:
+  bundleIdPrefix: dev.anix
+  developmentLanguage: ru
+  deploymentTarget:
+    iOS: "18.0"
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    SWIFT_STRICT_CONCURRENCY: minimal
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+targets:
+  Anix:
+    type: application
+    platform: iOS
+    sources:
+      - path: Anix
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.anix.client
+        TARGETED_DEVICE_FAMILY: "1,2"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    info:
+      path: Config/Info.plist
+      properties:
+        CFBundleDisplayName: Anix
+        UILaunchScreen: {}
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        CFBundleDevelopmentRegion: ru
+        CFBundleLocalizations: [ru, en]
+        UIBackgroundModes: [audio]
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: true
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
